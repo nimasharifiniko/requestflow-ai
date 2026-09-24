@@ -1,4 +1,5 @@
 import os
+import sys
 import requests
 import json
 from dotenv import load_dotenv
@@ -115,19 +116,54 @@ def create_trello_card(user_name: str, user_email: str, category: str, urgency: 
         return {"card_id": None, "url": ""}
 
 
-# Self-testing script
+# Integration test block connecting Google Form responses with AI Classifier and Trello
 if __name__ == "__main__":
-    print("📋 Testing Trello API Handler Module...\n")
+    # Ensure current project root is in sys.path
+    sys.path.append(os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
 
-    result = create_trello_card(
-        user_name="Nima Test",
-        user_email="nima@example.com",
-        category="Technical",
-        urgency="High",
-        summary="Payment Gateway Outage 500 Error",
-        details="Our payment gateway is completely down and throwing HTTP 500 errors for all customers!"
-    )
+    from app.form_watcher import fetch_form_responses
+    from app.classifier import classify_request
 
-    print("\n--- Result ---")
-    print(f"Card ID: {result.get('card_id')}")
-    print(f"Card URL: {result.get('url')}")
+    print("🚀 Running End-to-End Pipeline Test (Google Form -> AI Classifier -> Trello Card)...\n")
+
+    # Step 1: Fetch live responses from Google Sheet
+    responses = fetch_form_responses()
+
+    if not responses:
+        print("⚠️ No form responses found in Google Sheet.")
+    else:
+        for idx, item in enumerate(responses, start=1):
+            name = item.get("Full Name", "Unknown")
+            email = item.get("Email Address", "N/A")
+            request_text = item.get("Request Details", "")
+
+            print(
+                f"==================== Processing Request #{idx} ====================")
+            print(f"👤 User: {name} ({email})")
+            print(f"💬 Text: \"{request_text}\"")
+
+            # Step 2: Run AI Classifier
+            print("🤖 Classifying with Local AI...")
+            analysis = classify_request(request_text)
+
+            category = analysis.get("category", "General")
+            urgency = analysis.get("urgency", "Low")
+            summary = analysis.get("summary", request_text[:50])
+
+            print(f"  • Category: {category}")
+            print(f"  • Urgency: {urgency}")
+
+            # Step 3: Create Trello Card
+            print("📋 Creating Card in Trello...")
+            trello_res = create_trello_card(
+                user_name=name,
+                user_email=email,
+                category=category,
+                urgency=urgency,
+                summary=summary,
+                details=request_text
+            )
+
+            print(f"🔗 Trello Card URL: {trello_res.get('url')}")
+            print("==================================================================\n")
