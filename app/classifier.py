@@ -1,5 +1,6 @@
 import os
 import json
+import sys
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -94,18 +95,39 @@ def classify_request(request_text: str) -> dict:
         }
 
 
-# Self-testing block with multiple scenarios
+# Integration test block connecting Google Form responses with AI Classifier
 if __name__ == "__main__":
-    test_cases = [
-        "Our payment gateway is down and throwing 500 errors for all customers!",
-        "I was charged twice on my credit card for this month's subscription.",
-        "Could you please tell me how I can update my profile picture?"
-    ]
+    # Ensure current project root is in sys.path
+    sys.path.append(os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
+    from app.form_watcher import fetch_form_responses
 
-    print("🧠 Testing AI Request Classifier Module...\n")
-    for idx, text in enumerate(test_cases, start=1):
-        print(f"--- Test #{idx} ---")
-        print(f"Input: \"{text}\"")
-        res = classify_request(text)
-        print(f"Output: {json.dumps(res, indent=2)}")
-        print("-" * 40 + "\n")
+    print("🚀 Fetching live Google Form submissions and analyzing with AI...\n")
+
+    responses = fetch_form_responses()
+
+    if not responses:
+        print("⚠️ No form responses found.")
+    else:
+        for idx, item in enumerate(responses, start=1):
+            name = item.get("Full Name", "Unknown")
+            email = item.get("Email Address", "N/A")
+            request_text = item.get("Request Details", "")
+
+            print(f"==================== Request #{idx} ====================")
+            print(f"👤 From: {name} ({email})")
+            print(f"💬 Text: \"{request_text}\"")
+            print("🤖 Running AI Triage Analysis...")
+
+            # Run AI Classifier
+            analysis = classify_request(request_text)
+
+            urgency = analysis.get("urgency", "Low")
+            urgency_emoji = "🔴" if urgency == "High" else (
+                "🟡" if urgency == "Medium" else "🟢")
+
+            print(f"\n{urgency_emoji} Urgency Level: {urgency}")
+            print(f"📂 Category: {analysis.get('category')}")
+            print(f"📝 Summary: {analysis.get('summary')}")
+            print(f"💡 Reason: {analysis.get('reason')}")
+            print("=====================================================\n")
