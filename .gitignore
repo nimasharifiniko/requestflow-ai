@@ -1,0 +1,23 @@
+# Virtual Environment
+.venv/
+venv/
+
+# Secrets & Credentials (CRITICAL)
+.env
+credentials/*.json
+*.json
+
+# Databases
+data/*.db
+*.sqlite3
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# IDE
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store
